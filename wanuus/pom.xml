@@ -43,7 +43,13 @@
 		<dependency>
 			<groupId>org.twitter4j</groupId>
 			<artifactId>twitter4j-core</artifactId>
-			<version>[3.0,)</version>
+			<version>3.0.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.twitter4j</groupId>
+			<artifactId>twitter4j-stream</artifactId>
+			<version>3.0.2</version>
 		</dependency>
 
 		<dependency>
@@ -51,11 +57,17 @@
 			<artifactId>im4java</artifactId>
 			<version>1.2.0</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>cglib</groupId>
 			<artifactId>cglib</artifactId>
 			<version>2.2.2</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>commons-collections</groupId>
+			<artifactId>commons-collections</artifactId>
+			<version>3.2.1</version>
 		</dependency>
 
 	</dependencies>
@@ -75,7 +87,8 @@
 				<oauth.consumer.secret>T0v59GPuk6AOTQg34Rx03DDBlsmoTkMpqCzqPhVM</oauth.consumer.secret>
 				<oauth.access.token>316337996-HX0jp3QuoIem40o23mW4AuYfU7oJuFp1gHP0V3mM</oauth.access.token>
 				<oauth.access.token.secret>G159YwLHCqLCQ7xvy2Kn1PA7bXsI17vabED0jOIG3I</oauth.access.token.secret>
-				<twitter.list.url>https://twitter.com/jaav/the-daily-tech-update</twitter.list.url>
+				<twitter.list.owner.name>jaav</twitter.list.owner.name>
+				<twitter.list.slug>the-daily-tech-update</twitter.list.slug>
 				<imagemagick.home.path>C:/Program Files/ImageMagick</imagemagick.home.path>
 			</properties>
 		</profile>
@@ -94,6 +107,18 @@
 				<directory>src/test/resources</directory>
 			</testResource>
 		</testResources>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<configuration>
+						<source>1.6</source>
+						<target>1.6</target>
+						<optimize>true</optimize>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
 
 </project>
