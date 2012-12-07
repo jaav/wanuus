@@ -84,4 +84,5 @@ public class Tweet extends BaseEntity implements HasQuantity {
 		tweet.setUser(user);
 		return tweet;
 	}
+
 }
