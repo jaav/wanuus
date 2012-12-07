@@ -4,8 +4,6 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 
 import javax.persistence.Column;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Version;
@@ -16,7 +14,6 @@ public class BaseEntity implements Serializable {
 	private static final long serialVersionUID = 668644156618031096L;
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.TABLE)
 	@Column(name = "ID")
 	private Long id;
 

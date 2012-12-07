@@ -1,4 +1,4 @@
-package be.virtualsushi.wanuus;
+package be.virtualsushi.wanuus.components;
 
 import javax.annotation.PostConstruct;
 

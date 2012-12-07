@@ -7,20 +7,19 @@ import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import twitter4j.PagableResponseList;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.User;
+import be.virtualsushi.wanuus.components.WanuusStatusListener;
 import be.virtualsushi.wanuus.model.TwitterUser;
 import be.virtualsushi.wanuus.repositories.TweetRepository;
 import be.virtualsushi.wanuus.repositories.TwitterUserRepositoy;
 
-@Service("tweetsProcessService")
-public class TweetsProcessServiceImpl implements TweetsProcessService {
+@Service("dateCreationService")
+public class DataCreationServiceImpl implements DataCreationService {
 
 	@Autowired
 	private TweetRepository tweetRepository;
@@ -29,13 +28,13 @@ public class TweetsProcessServiceImpl implements TweetsProcessService {
 	private TwitterUserRepositoy twitterUserRepository;
 
 	@Autowired
-	private ApplicationContext applicationContext;
-
-	@Autowired
 	private Twitter twitter;
 
 	@Autowired
 	private WanuusStatusListener wanuusStatusListener;
+
+	@Autowired
+	private TweetProcessService tweetProcessService;
 
 	@Value("${twitter.listOwnerName}")
 	private String listOwnerName;
@@ -45,16 +44,21 @@ public class TweetsProcessServiceImpl implements TweetsProcessService {
 
 	@PostConstruct
 	@Override
-	public void loadListMembers() throws TwitterException {
+	public void createListData() throws TwitterException {
 		long cursor = -1;
-		PagableResponseList<User> members = twitter.getUserListMembers(listOwnerName, listSlug, cursor);
 		List<Long> existingUserIds = twitterUserRepository.getExistingUserIds();
+		getListMembers(cursor, existingUserIds);
+		tweetProcessService.processFollowList(existingUserIds);
+		wanuusStatusListener.listen(existingUserIds);
+	}
+
+	private void getListMembers(long cursor, List<Long> existingUserIds) throws TwitterException {
+		PagableResponseList<User> members = twitter.getUserListMembers(listOwnerName, listSlug, cursor);
 		while (!members.isEmpty()) {
 			readListMembers(members, existingUserIds);
 			cursor = members.getNextCursor();
 			members = twitter.getUserListMembers(listOwnerName, listSlug, cursor);
 		}
-		wanuusStatusListener.listen(existingUserIds);
 	}
 
 	private void readListMembers(PagableResponseList<User> members, List<Long> existingUserIds) {
@@ -62,19 +66,14 @@ public class TweetsProcessServiceImpl implements TweetsProcessService {
 		for (User member : members) {
 			if (!existingUserIds.contains(member.getId())) {
 				TwitterUser user = new TwitterUser();
-				user.setTwitterId(member.getId());
+				user.setId(member.getId());
 				user.setScreenName(member.getScreenName());
 				user.setName(member.getName());
 				users.add(user);
-				existingUserIds.add(user.getTwitterId());
+				existingUserIds.add(user.getId());
 			}
 		}
 		twitterUserRepository.save(users);
 	}
 
-	@Override
-	@Scheduled(fixedRate = 15 * 60 * 1000)
-	public void processTweets() {
-		System.out.println("perocessing tweets");
-	}
 }
