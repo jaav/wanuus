@@ -5,6 +5,8 @@ import java.util.Set;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
@@ -31,6 +33,13 @@ public class Tweet extends BaseEntity implements HasQuantity {
 
 	@Column(name = "QUANTITY")
 	private int quantity;
+
+	@Column(name = "TWEET_STATE")
+	@Enumerated(EnumType.STRING)
+	private TweetStates state;
+
+	@Column(name = "RATE")
+	private int rate;
 
 	public String getText() {
 		return text;
@@ -83,6 +92,40 @@ public class Tweet extends BaseEntity implements HasQuantity {
 		tweet.setText(status.getText());
 		tweet.setUser(user);
 		return tweet;
+	}
+
+	public TweetStates getState() {
+		return state;
+	}
+
+	public void setState(TweetStates state) {
+		this.state = state;
+	}
+
+	public int getRate() {
+		return rate;
+	}
+
+	public void setRate(int rate) {
+		this.rate = rate;
+	}
+
+	public boolean hasImage() {
+		for (TweetObject object : objects) {
+			if (TweetObjectTypes.IMAGE.equals(object.getType())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public boolean hasUrl() {
+		for (TweetObject object : objects) {
+			if (TweetObjectTypes.URL.equals(object.getType())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 }

@@ -1,5 +1,15 @@
 package be.virtualsushi.wanuus;
 
+import org.apache.http.client.HttpClient;
+import org.apache.http.conn.scheme.PlainSocketFactory;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.impl.client.DecompressingHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpParams;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -37,6 +47,22 @@ public class WanuusApplicationFactory {
 	@Bean(name = "twitterStream")
 	public TwitterStream getTwitterStream() {
 		return TwitterStreamFactory.getSingleton();
+	}
+
+	@Bean(name = "httpClient")
+	public HttpClient getHttpClient() {
+		SchemeRegistry schemeRegistry = new SchemeRegistry();
+		schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory.getSocketFactory()));
+		schemeRegistry.register(new Scheme("https", 443, SSLSocketFactory.getSocketFactory()));
+
+		PoolingClientConnectionManager connectionManager = new PoolingClientConnectionManager();
+		connectionManager.setMaxTotal(100);
+		connectionManager.setDefaultMaxPerRoute(30);
+
+		HttpParams params = new BasicHttpParams();
+		params.setParameter("http.protocol.handle-redirects", false);
+
+		return new DecompressingHttpClient(new DefaultHttpClient(connectionManager, params));
 	}
 
 }

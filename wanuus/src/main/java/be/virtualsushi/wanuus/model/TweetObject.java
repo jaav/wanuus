@@ -49,4 +49,15 @@ public class TweetObject extends BaseEntity implements HasQuantity {
 		quantity += amount;
 	}
 
+	public int getQuantityFactor() {
+		switch (type) {
+		case IMAGE:
+			return 3;
+		case URL:
+			return 2;
+		default:
+			return 1;
+		}
+	}
+
 }

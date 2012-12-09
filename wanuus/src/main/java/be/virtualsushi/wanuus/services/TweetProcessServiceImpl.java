@@ -15,6 +15,7 @@ import twitter4j.URLEntity;
 import be.virtualsushi.wanuus.model.Tweet;
 import be.virtualsushi.wanuus.model.TweetObject;
 import be.virtualsushi.wanuus.model.TweetObjectTypes;
+import be.virtualsushi.wanuus.model.TweetStates;
 import be.virtualsushi.wanuus.model.TwitterUser;
 import be.virtualsushi.wanuus.repositories.TweetObjectRepository;
 import be.virtualsushi.wanuus.repositories.TweetRepository;
@@ -35,6 +36,9 @@ public class TweetProcessServiceImpl implements TweetProcessService {
 	@Autowired
 	private TweetObjectRepository tweetObjectRepository;
 
+	@Autowired
+	private ShortUrlsProcessor shortUrlsProcessor;
+
 	@Async
 	@Override
 	public void processTweet(TwitterUser user, Status status) {
@@ -45,7 +49,10 @@ public class TweetProcessServiceImpl implements TweetProcessService {
 		Tweet tweet = tweetRepository.findOne(status.getId());
 		if (tweet == null) {
 			tweet = Tweet.fromStatus(status, user);
+		} else if (TweetStates.TOP_RATED.equals(tweet.getState())) {
+			return;
 		}
+		tweet.setState(TweetStates.NOT_RATED);
 		tweet.increaseQuantity(1);
 		processTweetObjects(tweet, status);
 		tweetRepository.save(tweet);
@@ -68,7 +75,11 @@ public class TweetProcessServiceImpl implements TweetProcessService {
 		if (object == null) {
 			object = new TweetObject();
 			object.setId(System.currentTimeMillis());
-			object.setValue(value);
+			if (TweetObjectTypes.URL.equals(type)) {
+				object.setValue(shortUrlsProcessor.getRealUrl(value));
+			} else {
+				object.setValue(value);
+			}
 			object.setType(type);
 		}
 		object.increaseQuantity(1);
