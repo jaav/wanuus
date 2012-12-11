@@ -1,6 +1,8 @@
-package be.virtualsushi.wanuus.services;
+package be.virtualsushi.wanuus.services.impl;
 
+import java.io.File;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +16,8 @@ import be.virtualsushi.wanuus.model.Tweet;
 import be.virtualsushi.wanuus.model.TweetObject;
 import be.virtualsushi.wanuus.model.TweetStates;
 import be.virtualsushi.wanuus.repositories.TweetRepository;
+import be.virtualsushi.wanuus.services.DataAnalysisService;
+import be.virtualsushi.wanuus.services.ImageProcessService;
 
 @Service("dataAnalysisService")
 public class DataAnalysisServiceImpl implements DataAnalysisService {
@@ -23,22 +27,29 @@ public class DataAnalysisServiceImpl implements DataAnalysisService {
 	@Autowired
 	private TweetRepository tweetRepository;
 
+	@Autowired
+	private ImageProcessService imageProcessService;
+
 	@Override
-	// @Scheduled(fixedRate = 15 * 60 * 1000)
 	public void analyseTweets() {
-		List<Tweet> tweets = tweetRepository.getNotRatedTweets();
-		log.debug("Rating tweets. Count: " + tweets.size());
-		rateTweets(tweets);
-		log.debug("Processing top rated tweets.");
-		processTopRatedTweets(tweetRepository.getTopRatedTweets(new PageRequest(0, 5, Direction.DESC, "rate")));
+		try {
+			List<Tweet> tweets = tweetRepository.getNotRatedTweets();
+			log.debug("Rating tweets. Count: " + tweets.size());
+			rateTweets(tweets);
+			log.debug("Processing top rated tweets.");
+			processTopRatedTweets(tweetRepository.getTopRatedTweets(new PageRequest(0, 5, Direction.DESC, "rate")));
+		} catch (Exception e) {
+			log.error("Error analysing tweets.", e);
+		}
 	}
 
-	private void processTopRatedTweets(Page<Tweet> topRatedTweets) {
+	private void processTopRatedTweets(Page<Tweet> topRatedTweets) throws InterruptedException, ExecutionException {
 		for (Tweet tweet : topRatedTweets.getContent()) {
 			tweet.setState(TweetStates.TOP_RATED);
-			tweetRepository.save(tweet);
+			tweet = tweetRepository.save(tweet);
+			File result = imageProcessService.createTweetImage(tweet).get();
+			// TODO post to GAE
 		}
-
 	}
 
 	private void rateTweets(List<Tweet> tweets) {

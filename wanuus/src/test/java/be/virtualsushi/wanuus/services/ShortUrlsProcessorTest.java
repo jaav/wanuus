@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import be.virtualsushi.wanuus.BaseWanuusTest;
+import be.virtualsushi.wanuus.components.ShortUrlsProcessor;
 
 public class ShortUrlsProcessorTest extends BaseWanuusTest {
 

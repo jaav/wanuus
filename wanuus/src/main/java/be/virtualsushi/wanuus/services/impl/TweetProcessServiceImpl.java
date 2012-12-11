@@ -1,4 +1,4 @@
-package be.virtualsushi.wanuus.services;
+package be.virtualsushi.wanuus.services.impl;
 
 import java.util.List;
 
@@ -12,6 +12,7 @@ import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.URLEntity;
+import be.virtualsushi.wanuus.components.ShortUrlsProcessor;
 import be.virtualsushi.wanuus.model.Tweet;
 import be.virtualsushi.wanuus.model.TweetObject;
 import be.virtualsushi.wanuus.model.TweetObjectTypes;
@@ -20,6 +21,7 @@ import be.virtualsushi.wanuus.model.TwitterUser;
 import be.virtualsushi.wanuus.repositories.TweetObjectRepository;
 import be.virtualsushi.wanuus.repositories.TweetRepository;
 import be.virtualsushi.wanuus.repositories.TwitterUserRepositoy;
+import be.virtualsushi.wanuus.services.TweetProcessService;
 
 @Service("tweetProcessService")
 public class TweetProcessServiceImpl implements TweetProcessService {

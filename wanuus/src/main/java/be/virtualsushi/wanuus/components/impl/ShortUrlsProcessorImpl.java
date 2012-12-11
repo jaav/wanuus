@@ -1,4 +1,4 @@
-package be.virtualsushi.wanuus.services;
+package be.virtualsushi.wanuus.components.impl;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -8,9 +8,11 @@ import org.apache.http.client.methods.HttpGet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service("shortUrlsProcessor")
+import be.virtualsushi.wanuus.components.ShortUrlsProcessor;
+
+@Component("shortUrlsProcessor")
 public class ShortUrlsProcessorImpl implements ShortUrlsProcessor {
 
 	private static final Logger log = LoggerFactory.getLogger(ShortUrlsProcessorImpl.class);

@@ -128,4 +128,22 @@ public class Tweet extends BaseEntity implements HasQuantity {
 		return false;
 	}
 
+	public TweetObject getFirstImageObject() {
+		for (TweetObject object : objects) {
+			if (TweetObjectTypes.IMAGE.equals(object.getType())) {
+				return object;
+			}
+		}
+		return null;
+	}
+
+	public TweetObject getFirstUrlObject() {
+		for (TweetObject object : objects) {
+			if (TweetObjectTypes.URL.equals(object.getType())) {
+				return object;
+			}
+		}
+		return null;
+	}
+
 }

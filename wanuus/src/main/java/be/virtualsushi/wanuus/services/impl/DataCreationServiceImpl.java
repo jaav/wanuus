@@ -1,9 +1,7 @@
-package be.virtualsushi.wanuus.services;
+package be.virtualsushi.wanuus.services.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +15,8 @@ import be.virtualsushi.wanuus.components.WanuusStatusListener;
 import be.virtualsushi.wanuus.model.TwitterUser;
 import be.virtualsushi.wanuus.repositories.TweetRepository;
 import be.virtualsushi.wanuus.repositories.TwitterUserRepositoy;
+import be.virtualsushi.wanuus.services.DataCreationService;
+import be.virtualsushi.wanuus.services.TweetProcessService;
 
 @Service("dateCreationService")
 public class DataCreationServiceImpl implements DataCreationService {
@@ -45,7 +45,6 @@ public class DataCreationServiceImpl implements DataCreationService {
 	@Value("${run.import}")
 	private boolean runImport;
 
-	@PostConstruct
 	@Override
 	public void createListData() throws TwitterException {
 		if (runImport) {

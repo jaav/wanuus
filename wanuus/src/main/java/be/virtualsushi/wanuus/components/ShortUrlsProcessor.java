@@ -1,4 +1,4 @@
-package be.virtualsushi.wanuus.services;
+package be.virtualsushi.wanuus.components;
 
 public interface ShortUrlsProcessor {
 

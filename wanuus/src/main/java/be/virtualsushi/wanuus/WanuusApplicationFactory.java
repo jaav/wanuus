@@ -17,8 +17,10 @@ import org.springframework.context.annotation.ImportResource;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.web.client.RestTemplate;
 
 import twitter4j.Twitter;
 import twitter4j.TwitterFactory;
@@ -63,6 +65,11 @@ public class WanuusApplicationFactory {
 		params.setParameter("http.protocol.handle-redirects", false);
 
 		return new DecompressingHttpClient(new DefaultHttpClient(connectionManager, params));
+	}
+
+	@Bean(name = "restTemplate")
+	public RestTemplate getRestTemplate() {
+		return new RestTemplate(new HttpComponentsClientHttpRequestFactory(getHttpClient()));
 	}
 
 }

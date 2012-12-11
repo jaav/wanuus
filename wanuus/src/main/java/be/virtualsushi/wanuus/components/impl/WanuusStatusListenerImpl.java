@@ -1,4 +1,4 @@
-package be.virtualsushi.wanuus.components;
+package be.virtualsushi.wanuus.components.impl;
 
 import java.util.List;
 
@@ -13,6 +13,7 @@ import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
 import twitter4j.TwitterStream;
+import be.virtualsushi.wanuus.components.WanuusStatusListener;
 import be.virtualsushi.wanuus.repositories.TwitterUserRepositoy;
 import be.virtualsushi.wanuus.services.TweetProcessService;
 
