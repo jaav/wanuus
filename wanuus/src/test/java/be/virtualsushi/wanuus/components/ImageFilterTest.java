@@ -1,4 +1,4 @@
-package be.virtualsushi.wanuus.services;
+package be.virtualsushi.wanuus.components;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -11,12 +11,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import be.virtualsushi.wanuus.BaseWanuusTest;
 import be.virtualsushi.wanuus.components.ImageFilter;
 
-public class ImageProcessorServiceTest extends BaseWanuusTest {
+public class ImageFilterTest extends BaseWanuusTest {
 
 	private static final String[] TEST_IMAGES = { "img1.jpg", "img2.png", "img3.jpg" };
 
 	@Autowired
-	private ImageFilter imageProcessorService;
+	private ImageFilter imageFilter;
 
 	@Test
 	public void testImageProcessing() throws IOException {
@@ -25,7 +25,7 @@ public class ImageProcessorServiceTest extends BaseWanuusTest {
 			FileOutputStream outFile = new FileOutputStream(imageFile);
 			IOUtils.copyLarge(getClass().getClassLoader().getResourceAsStream(imageName), outFile);
 			IOUtils.closeQuietly(outFile);
-			imageProcessorService.applyFilter(imageFile);
+			imageFilter.applyFilter(imageFile);
 		}
 	}
 

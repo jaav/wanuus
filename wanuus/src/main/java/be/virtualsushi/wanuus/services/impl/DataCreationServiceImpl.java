@@ -42,18 +42,13 @@ public class DataCreationServiceImpl implements DataCreationService {
 	@Value("${twitter.listSlug}")
 	private String listSlug;
 
-	@Value("${run.import}")
-	private boolean runImport;
-
 	@Override
 	public void createListData() throws TwitterException {
-		if (runImport) {
-			long cursor = -1;
-			List<Long> existingUserIds = twitterUserRepository.getExistingUserIds();
-			getListMembers(cursor, existingUserIds);
-			tweetProcessService.processFollowList(existingUserIds);
-			wanuusStatusListener.listen(existingUserIds);
-		}
+		long cursor = -1;
+		List<Long> existingUserIds = twitterUserRepository.getExistingUserIds();
+		getListMembers(cursor, existingUserIds);
+		tweetProcessService.processFollowList(existingUserIds);
+		wanuusStatusListener.listen(existingUserIds);
 	}
 
 	private void getListMembers(long cursor, List<Long> existingUserIds) throws TwitterException {

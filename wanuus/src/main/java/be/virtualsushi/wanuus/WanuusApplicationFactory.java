@@ -16,9 +16,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.client.RestTemplate;
 
@@ -31,9 +33,9 @@ import twitter4j.TwitterStreamFactory;
 @ComponentScan(basePackages = { "be.virtualsushi.wanuus" })
 @PropertySource("classpath:application.properties")
 @ImportResource("META-INF/infrastructure.xml")
-@EnableScheduling
 @EnableJpaRepositories
 @EnableTransactionManagement
+@EnableAsync
 public class WanuusApplicationFactory {
 
 	@Bean(name = "twitter")
@@ -70,6 +72,11 @@ public class WanuusApplicationFactory {
 	@Bean(name = "restTemplate")
 	public RestTemplate getRestTemplate() {
 		return new RestTemplate(new HttpComponentsClientHttpRequestFactory(getHttpClient()));
+	}
+
+	@Bean
+	public TaskExecutor getTaskExecutor() {
+		return new ThreadPoolTaskExecutor();
 	}
 
 }

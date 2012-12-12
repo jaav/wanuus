@@ -2,11 +2,11 @@ package be.virtualsushi.wanuus.services.impl;
 
 import java.io.File;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort.Direction;
@@ -24,11 +24,34 @@ public class DataAnalysisServiceImpl implements DataAnalysisService {
 
 	private static final Logger log = LoggerFactory.getLogger(DataAnalysisServiceImpl.class);
 
+	private class PostTweetRunnable implements Runnable {
+
+		private final Tweet tweet;
+
+		public PostTweetRunnable(Tweet tweet) {
+			this.tweet = tweet;
+		}
+
+		@Override
+		public void run() {
+			try {
+				File imageFile = imageProcessService.createTweetImage(tweet).get();
+				// TODO post to GAE
+			} catch (Exception e) {
+				log.error("Error posting tweet. Tweet id - " + tweet.getId(), e);
+			}
+		}
+
+	}
+
 	@Autowired
 	private TweetRepository tweetRepository;
 
 	@Autowired
 	private ImageProcessService imageProcessService;
+
+	@Autowired
+	private TaskExecutor taskExecutor;
 
 	@Override
 	public void analyseTweets() {
@@ -43,18 +66,16 @@ public class DataAnalysisServiceImpl implements DataAnalysisService {
 		}
 	}
 
-	private void processTopRatedTweets(Page<Tweet> topRatedTweets) throws InterruptedException, ExecutionException {
+	private void processTopRatedTweets(Page<Tweet> topRatedTweets) {
 		for (Tweet tweet : topRatedTweets.getContent()) {
 			tweet.setState(TweetStates.TOP_RATED);
-			tweet = tweetRepository.save(tweet);
-			File result = imageProcessService.createTweetImage(tweet).get();
-			// TODO post to GAE
+			taskExecutor.execute(new PostTweetRunnable(tweetRepository.save(tweet)));
 		}
 	}
 
 	private void rateTweets(List<Tweet> tweets) {
 		for (Tweet tweet : tweets) {
-			int rate = tweet.getQuantity() * 2;
+			int rate = tweet.getRawRate();
 			for (TweetObject object : tweet.getObjects()) {
 				rate += object.getQuantity() * object.getQuantityFactor();
 			}

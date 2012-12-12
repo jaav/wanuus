@@ -1,4 +1,4 @@
-package be.virtualsushi.wanuus.services;
+package be.virtualsushi.wanuus.components;
 
 import org.junit.Assert;
 import org.junit.Test;

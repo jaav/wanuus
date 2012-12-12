@@ -107,6 +107,12 @@
 			<version>3.1.3.RELEASE</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-jaxrs</artifactId>
+			<version>1.9.11</version>
+		</dependency>
+
 	</dependencies>
 
 	<profiles>
@@ -127,6 +133,8 @@
 				<twitter.list.owner.name>jaav</twitter.list.owner.name>
 				<twitter.list.slug>the-daily-tech-update</twitter.list.slug>
 				<imagemagick.home.path>C:/Program Files/ImageMagick</imagemagick.home.path>
+				<google.search.api.key>AIzaSyBcfbdPBGxMy8LK3E6DmBqFUXoLeeG0fxw</google.search.api.key>
+				<google.search.engine.id>004493898280328902075:gmjrxrwdaes</google.search.engine.id>
 			</properties>
 		</profile>
 	</profiles>

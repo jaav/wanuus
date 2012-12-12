@@ -76,7 +76,6 @@ public class TweetProcessServiceImpl implements TweetProcessService {
 		TweetObject object = tweetObjectRepository.findByValueAndType(value, type);
 		if (object == null) {
 			object = new TweetObject();
-			object.setId(System.currentTimeMillis());
 			if (TweetObjectTypes.URL.equals(type)) {
 				object.setValue(shortUrlsProcessor.getRealUrl(value));
 			} else {

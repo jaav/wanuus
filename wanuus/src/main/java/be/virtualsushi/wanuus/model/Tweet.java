@@ -1,6 +1,10 @@
 package be.virtualsushi.wanuus.model;
 
+import java.io.Serializable;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.persistence.Column;
@@ -8,17 +12,29 @@ import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
+import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
+import javax.persistence.Version;
 
 import twitter4j.Status;
 
 @Entity
-public class Tweet extends BaseEntity implements HasQuantity {
+public class Tweet implements HasQuantity, Serializable {
 
 	private static final long serialVersionUID = -5452953243879914216L;
+
+	private static final int TWEET_QUANTITY_FACTOR = 2;
+
+	@Id
+	@Column(name = "ID")
+	private Long id;
+
+	@Version
+	@Column(name = "LAST_MODIFIED")
+	private Timestamp lastModified;
 
 	@ManyToOne
 	@JoinColumn(name = "USER_ID")
@@ -144,6 +160,61 @@ public class Tweet extends BaseEntity implements HasQuantity {
 			}
 		}
 		return null;
+	}
+
+	public List<String> getHashTags() {
+		List<String> result = new ArrayList<String>();
+		for (TweetObject object : objects) {
+			if (TweetObjectTypes.HASHTAG.equals(object.getType())) {
+				result.add(object.getValue());
+			}
+		}
+		return result;
+	}
+
+	public int getRawRate() {
+		return getQuantity() * TWEET_QUANTITY_FACTOR;
+	}
+
+	public Timestamp getLastModified() {
+		return lastModified;
+	}
+
+	public void setLastModified(Timestamp lastModified) {
+		this.lastModified = lastModified;
+	}
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Tweet other = (Tweet) obj;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		return true;
 	}
 
 }

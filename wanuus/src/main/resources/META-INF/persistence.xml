@@ -6,5 +6,6 @@
     	<class>be.virtualsushi.wanuus.model.TwitterUser</class>
     	<class>be.virtualsushi.wanuus.model.TweetObject</class>
     	<class>be.virtualsushi.wanuus.model.Tweet</class>
+    	<class>be.virtualsushi.wanuus.model.GoogleSearchCachedResult</class>
     </persistence-unit>
 </persistence>

@@ -10,6 +10,10 @@ public class TweetObject extends BaseEntity implements HasQuantity {
 
 	private static final long serialVersionUID = 2576971152325807097L;
 
+	private static final int IMAGE_QUANTITY_FACTOR = 3;
+	private static final int URL_QUANTITY_FACTOR = 2;
+	private static final int HASHTAG_QUANTITY_FACTOR = 1;
+
 	@Column(name = "VALUE")
 	private String value;
 
@@ -52,11 +56,11 @@ public class TweetObject extends BaseEntity implements HasQuantity {
 	public int getQuantityFactor() {
 		switch (type) {
 		case IMAGE:
-			return 3;
+			return IMAGE_QUANTITY_FACTOR;
 		case URL:
-			return 2;
+			return URL_QUANTITY_FACTOR;
 		default:
-			return 1;
+			return HASHTAG_QUANTITY_FACTOR;
 		}
 	}
 

@@ -1,11 +1,13 @@
 package be.virtualsushi.wanuus.components.impl;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.util.UUID;
 
 import javax.annotation.PostConstruct;
+import javax.imageio.ImageIO;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
@@ -58,7 +60,20 @@ public class ImageDownloaderImpl implements ImageDownloader {
 			IOUtils.copy(input, out);
 			IOUtils.closeQuietly(input);
 			IOUtils.closeQuietly(out);
-			EntityUtils.consume(responseEntity);
+			EntityUtils.consumeQuietly(responseEntity);
+		} catch (Exception e) {
+			log.error("Error downloading file. url - " + url, e);
+		}
+		return result;
+	}
+
+	@Override
+	public BufferedImage downloadImageTemporarily(String url) {
+		BufferedImage result = null;
+		try {
+			HttpEntity responseEntity = httpClient.execute(new HttpGet(url)).getEntity();
+			result = ImageIO.read(responseEntity.getContent());
+			EntityUtils.consumeQuietly(responseEntity);
 		} catch (Exception e) {
 			log.error("Error downloading file. url - " + url, e);
 		}
