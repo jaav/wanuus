@@ -14,7 +14,7 @@ public class TweetObject extends BaseEntity implements HasQuantity {
 	private static final int URL_QUANTITY_FACTOR = 2;
 	private static final int HASHTAG_QUANTITY_FACTOR = 1;
 
-	@Column(name = "VALUE")
+	@Column(name = "VALUE", length = 2048)
 	private String value;
 
 	@Column(name = "QUANTITY")

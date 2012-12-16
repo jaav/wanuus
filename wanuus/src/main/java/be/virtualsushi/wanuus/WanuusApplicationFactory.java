@@ -1,6 +1,9 @@
 package be.virtualsushi.wanuus;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -19,8 +22,11 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.client.RestTemplate;
 
@@ -36,6 +42,7 @@ import twitter4j.TwitterStreamFactory;
 @EnableJpaRepositories
 @EnableTransactionManagement
 @EnableAsync
+@EnableScheduling
 public class WanuusApplicationFactory {
 
 	@Bean(name = "twitter")
@@ -55,18 +62,22 @@ public class WanuusApplicationFactory {
 
 	@Bean(name = "httpClient")
 	public HttpClient getHttpClient() {
+		HttpParams params = new BasicHttpParams();
+		params.setParameter("http.protocol.handle-redirects", false);
+		DefaultHttpClient.setDefaultHttpParams(params);
+		return new DecompressingHttpClient(new DefaultHttpClient(getClientConnectionManager(), params));
+	}
+
+	@Bean(name = "clientConnectionManager")
+	public ClientConnectionManager getClientConnectionManager() {
 		SchemeRegistry schemeRegistry = new SchemeRegistry();
 		schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory.getSocketFactory()));
 		schemeRegistry.register(new Scheme("https", 443, SSLSocketFactory.getSocketFactory()));
 
-		PoolingClientConnectionManager connectionManager = new PoolingClientConnectionManager();
-		connectionManager.setMaxTotal(100);
-		connectionManager.setDefaultMaxPerRoute(30);
-
-		HttpParams params = new BasicHttpParams();
-		params.setParameter("http.protocol.handle-redirects", false);
-
-		return new DecompressingHttpClient(new DefaultHttpClient(connectionManager, params));
+		PoolingClientConnectionManager connectionManager = new PoolingClientConnectionManager(schemeRegistry, 30, TimeUnit.SECONDS);
+		connectionManager.setMaxTotal(400);
+		connectionManager.setDefaultMaxPerRoute(100);
+		return connectionManager;
 	}
 
 	@Bean(name = "restTemplate")
@@ -74,9 +85,18 @@ public class WanuusApplicationFactory {
 		return new RestTemplate(new HttpComponentsClientHttpRequestFactory(getHttpClient()));
 	}
 
-	@Bean
+	@Bean(name = "taskExecutor")
 	public TaskExecutor getTaskExecutor() {
-		return new ThreadPoolTaskExecutor();
+		ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
+		taskExecutor.setCorePoolSize(10);
+		return taskExecutor;
+	}
+
+	@Bean(name = "taskScheduler")
+	public TaskScheduler getTaskScheduler() {
+		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
+		taskScheduler.setPoolSize(10);
+		return taskScheduler;
 	}
 
 }

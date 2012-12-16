@@ -11,13 +11,13 @@ import be.virtualsushi.wanuus.services.GoogleSearchService;
 
 public class ProcessTweetChainUrlElement extends AbstractProcessChainElement<Tweet> {
 
-	private ProcessChainElement<Document, String> processUrlChain;
+	private ProcessChainElement<Document, String> processUrlChainRoot;
 
 	private Document document;
 
 	public ProcessTweetChainUrlElement(ImageDownloader imageDownloader, GoogleSearchService googleSearchService) {
-		processUrlChain = new ProcessUrlChainOpenTagElement();
-		processUrlChain.setNext(new ProcessUrlChainFacebookElement()).setNext(new ProcessUrlChainSchemaOrgElement()).setNext(new ProcessUrlChainCustomElement(imageDownloader, googleSearchService));
+		processUrlChainRoot = new ProcessUrlChainOpenTagElement();
+		processUrlChainRoot.setNext(new ProcessUrlChainFacebookElement()).setNext(new ProcessUrlChainSchemaOrgElement()).setNext(new ProcessUrlChainCustomElement(imageDownloader, googleSearchService));
 	}
 
 	@Override
@@ -35,7 +35,7 @@ public class ProcessTweetChainUrlElement extends AbstractProcessChainElement<Twe
 
 	@Override
 	protected String doProcess(Tweet object) {
-		return processUrlChain.process(document);
+		return processUrlChainRoot.process(document);
 	}
 
 }

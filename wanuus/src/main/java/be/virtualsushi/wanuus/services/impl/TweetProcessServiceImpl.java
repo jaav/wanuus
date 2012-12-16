@@ -1,13 +1,24 @@
 package be.virtualsushi.wanuus.services.impl;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Future;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
 import twitter4j.HashtagEntity;
 import twitter4j.MediaEntity;
+import twitter4j.ResponseList;
 import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
@@ -26,6 +37,8 @@ import be.virtualsushi.wanuus.services.TweetProcessService;
 @Service("tweetProcessService")
 public class TweetProcessServiceImpl implements TweetProcessService {
 
+	private static final Logger log = LoggerFactory.getLogger(TweetProcessServiceImpl.class);
+
 	@Autowired
 	private Twitter twitter;
 
@@ -41,46 +54,59 @@ public class TweetProcessServiceImpl implements TweetProcessService {
 	@Autowired
 	private ShortUrlsProcessor shortUrlsProcessor;
 
+	@Autowired
+	private TaskExecutor taskExecutor;
+
+	private Map<Long, Integer> processingTweetsQuantities = Collections.synchronizedMap(new HashMap<Long, Integer>());
+
 	@Async
 	@Override
 	public void processTweet(TwitterUser user, Status status) {
 		if (status.isRetweet()) {
-			processTweet(user, status.getRetweetedStatus());
-			return;
+			status = status.getRetweetedStatus();
 		}
-		Tweet tweet = tweetRepository.findOne(status.getId());
-		if (tweet == null) {
-			tweet = Tweet.fromStatus(status, user);
-		} else if (TweetStates.TOP_RATED.equals(tweet.getState())) {
-			return;
+		if (processingTweetsQuantities.containsKey(status.getId())) {
+			Integer quantity = processingTweetsQuantities.get(status.getId());
+			processingTweetsQuantities.put(status.getId(), quantity + 1);
+		} else {
+			processingTweetsQuantities.put(status.getId(), 1);
+			Tweet tweet = tweetRepository.findOne(status.getId());
+			if (tweet == null) {
+				TwitterUser realAuthor = twitterUserRepositoy.findOne(status.getUser().getId());
+				tweet = Tweet.fromStatus(status, realAuthor == null ? user : realAuthor);
+				tweet.addObjects(processTweetObjects(status));
+			} else if (TweetStates.TOP_RATED.equals(tweet.getState())) {
+				return;
+			}
+			tweet.setState(TweetStates.NOT_RATED);
+			tweet.increaseQuantity(processingTweetsQuantities.get(status.getId()));
+			tweetRepository.save(tweet);
+			processingTweetsQuantities.remove(status.getId());
 		}
-		tweet.setState(TweetStates.NOT_RATED);
-		tweet.increaseQuantity(1);
-		processTweetObjects(tweet, status);
-		tweetRepository.save(tweet);
 	}
 
-	private void processTweetObjects(Tweet tweet, Status status) {
+	private Set<TweetObject> processTweetObjects(Status status) {
+		HashSet<TweetObject> result = new HashSet<TweetObject>();
 		for (HashtagEntity hashtag : status.getHashtagEntities()) {
-			tweet.addObject(processTweetObject(hashtag.getText(), TweetObjectTypes.HASHTAG));
+			result.add(processTweetObject(hashtag.getText(), TweetObjectTypes.HASHTAG));
 		}
 		for (URLEntity url : status.getURLEntities()) {
-			tweet.addObject(processTweetObject(url.getExpandedURL(), TweetObjectTypes.URL));
+			result.add(processTweetObject(url.getExpandedURL(), TweetObjectTypes.URL));
 		}
 		for (MediaEntity media : status.getMediaEntities()) {
-			tweet.addObject(processTweetObject(media.getMediaURL(), TweetObjectTypes.IMAGE));
+			result.add(processTweetObject(media.getMediaURL(), TweetObjectTypes.IMAGE));
 		}
+		return result;
 	}
 
 	private TweetObject processTweetObject(String value, TweetObjectTypes type) {
+		if (TweetObjectTypes.URL.equals(type)) {
+			value = shortUrlsProcessor.getRealUrl(value);
+		}
 		TweetObject object = tweetObjectRepository.findByValueAndType(value, type);
 		if (object == null) {
 			object = new TweetObject();
-			if (TweetObjectTypes.URL.equals(type)) {
-				object.setValue(shortUrlsProcessor.getRealUrl(value));
-			} else {
-				object.setValue(value);
-			}
+			object.setValue(value);
 			object.setType(type);
 		}
 		object.increaseQuantity(1);
@@ -93,14 +119,20 @@ public class TweetProcessServiceImpl implements TweetProcessService {
 		for (Status status : statuses) {
 			processTweet(user, status);
 		}
+		log.info(statuses.size() + " tweets processed for user - " + user.getId());
 	}
 
 	@Async
 	@Override
-	public void processFollowList(List<Long> followList) throws TwitterException {
-		for (Long followId : followList) {
-			processTweets(twitterUserRepositoy.findOne(followId), twitter.getUserTimeline(followId));
-		}
+	public Future<Integer> processFollowing(TwitterUser user) throws TwitterException {
+		ResponseList<Status> timeline = twitter.getUserTimeline(user.getId());
+		processTweets(user, timeline);
+		return new AsyncResult<Integer>(timeline.size());
+	}
+
+	@Override
+	public void deleteTweet(Long tweetId) {
+		tweetRepository.delete(tweetId);
 	}
 
 }

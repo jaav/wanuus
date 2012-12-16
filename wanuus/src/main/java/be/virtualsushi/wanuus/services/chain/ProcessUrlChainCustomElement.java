@@ -10,6 +10,9 @@ import be.virtualsushi.wanuus.services.GoogleSearchService;
 
 public class ProcessUrlChainCustomElement extends AbstractProcessChainElement<Document> {
 
+	private static final int DOCUMENT_IMGS_TO_CHECK_COUNT = 5;
+	private static final int MIN_IMAGE_SIZE = 200;
+
 	private ImageDownloader imageDownloader;
 
 	private GoogleSearchService googleSearchService;
@@ -27,11 +30,11 @@ public class ProcessUrlChainCustomElement extends AbstractProcessChainElement<Do
 	@Override
 	protected String doProcess(Document object) {
 		Elements elements = object.select("img");
-		int imgsCount = elements.size() < 3 ? elements.size() : 3;
+		int imgsCount = elements.size() < DOCUMENT_IMGS_TO_CHECK_COUNT ? elements.size() : DOCUMENT_IMGS_TO_CHECK_COUNT;
 		for (int i = 0; i < imgsCount; i++) {
-			String imageUrl = elements.get(i).attr("src");
+			String imageUrl = object.absUrl(elements.get(i).attr("src"));
 			BufferedImage image = imageDownloader.downloadImageTemporarily(imageUrl);
-			if (image.getHeight() > 200 && image.getWidth() > 200) {
+			if (image != null && image.getHeight() > MIN_IMAGE_SIZE && image.getWidth() > MIN_IMAGE_SIZE) {
 				return imageUrl;
 			}
 		}

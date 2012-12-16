@@ -17,6 +17,8 @@ public class GoogleSearchServiceTest extends BaseWanuusTest {
 		Assert.assertNotNull(result);
 		String result2 = googleSearchService.searchForImage("flowers", "house");
 		Assert.assertEquals(result, result2);
+		String result3 = googleSearchService.searchForImage("@flowers", "tron");
+		Assert.assertNotNull(result3);
 	}
 
 }

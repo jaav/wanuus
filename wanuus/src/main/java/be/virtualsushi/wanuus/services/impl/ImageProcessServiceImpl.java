@@ -20,6 +20,7 @@ import be.virtualsushi.wanuus.services.ImageProcessService;
 import be.virtualsushi.wanuus.services.chain.ProcessChainElement;
 import be.virtualsushi.wanuus.services.chain.ProcessTweetChainHashtagElement;
 import be.virtualsushi.wanuus.services.chain.ProcessTweetChainImageElement;
+import be.virtualsushi.wanuus.services.chain.ProcessTweetChainTextElement;
 import be.virtualsushi.wanuus.services.chain.ProcessTweetChainUrlElement;
 
 @Service("imageProcessService")
@@ -36,12 +37,12 @@ public class ImageProcessServiceImpl implements ImageProcessService {
 	@Autowired
 	private GoogleSearchService googleSearchService;
 
-	private ProcessChainElement<Tweet, String> processTweetChain;
+	private ProcessChainElement<Tweet, String> processTweetChainRoot;
 
 	@PostConstruct
 	public void initProcessChain() {
-		processTweetChain = new ProcessTweetChainImageElement();
-		processTweetChain.setNext(new ProcessTweetChainUrlElement(imageDownloader, googleSearchService)).setNext(new ProcessTweetChainHashtagElement(googleSearchService));
+		processTweetChainRoot = new ProcessTweetChainImageElement();
+		processTweetChainRoot.setNext(new ProcessTweetChainUrlElement(imageDownloader, googleSearchService)).setNext(new ProcessTweetChainHashtagElement(googleSearchService)).setNext(new ProcessTweetChainTextElement(googleSearchService));
 	}
 
 	@Async
@@ -49,7 +50,7 @@ public class ImageProcessServiceImpl implements ImageProcessService {
 	public Future<File> createTweetImage(Tweet tweet) {
 		File result = null;
 		try {
-			result = imageDownloader.downloadImage(processTweetChain.process(tweet));
+			result = imageDownloader.downloadImage(processTweetChainRoot.process(tweet));
 			imageFilter.applyFilter(result);
 		} catch (Exception e) {
 			log.error("Error processing image. Tweet id - " + tweet.getId(), e);

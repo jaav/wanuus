@@ -4,6 +4,8 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -14,11 +16,14 @@ import twitter4j.StatusDeletionNotice;
 import twitter4j.StatusListener;
 import twitter4j.TwitterStream;
 import be.virtualsushi.wanuus.components.WanuusStatusListener;
+import be.virtualsushi.wanuus.model.TwitterUser;
 import be.virtualsushi.wanuus.repositories.TwitterUserRepositoy;
 import be.virtualsushi.wanuus.services.TweetProcessService;
 
 @Component("twitterUserStatusListener")
 public class WanuusStatusListenerImpl implements StatusListener, WanuusStatusListener {
+
+	private static final Logger log = LoggerFactory.getLogger(WanuusStatusListenerImpl.class);
 
 	@Autowired
 	private TwitterStream twitterStream;
@@ -36,7 +41,7 @@ public class WanuusStatusListenerImpl implements StatusListener, WanuusStatusLis
 
 	@Override
 	public void onException(Exception ex) {
-
+		log.error("Error listening twitter stauses updates.", ex);
 	}
 
 	@Override
@@ -46,7 +51,7 @@ public class WanuusStatusListenerImpl implements StatusListener, WanuusStatusLis
 
 	@Override
 	public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {
-
+		tweetProcessService.deleteTweet(statusDeletionNotice.getStatusId());
 	}
 
 	@Override
@@ -61,14 +66,14 @@ public class WanuusStatusListenerImpl implements StatusListener, WanuusStatusLis
 
 	@Override
 	public void onStallWarning(StallWarning warning) {
-
+		log.warn(warning.getCode(), warning.getMessage());
 	}
 
 	@Override
-	public void listen(List<Long> followIds) {
-		long[] follow = new long[followIds.size()];
+	public void listen(List<TwitterUser> followings) {
+		long[] follow = new long[followings.size()];
 		for (int i = 0; i < follow.length; i++) {
-			follow[i] = followIds.get(i);
+			follow[i] = followings.get(i).getId();
 		}
 		twitterStream.filter(new FilterQuery(follow));
 	}

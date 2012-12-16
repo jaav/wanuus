@@ -1,7 +1,5 @@
 package be.virtualsushi.wanuus.model;
 
-import java.io.Serializable;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -12,34 +10,60 @@ import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
-import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
-import javax.persistence.Version;
+import javax.persistence.Transient;
+
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.annotate.JsonUnwrapped;
 
 import twitter4j.Status;
 
+/**
+ * Tweet post json format:<br/>
+ * [<br/>
+ * {<br/>
+ * "hashtags":["hash11","hash12","hash13"],<br/>
+ * "urls":["http://a.realurl11.com","http://a.realurl12.com",
+ * "http://a.realurl13.com"],<br/>
+ * "tweet":
+ * "This is the content of a tweet. Bla bla ... #hash11 #hash12 #hash13 http://t.co/123456 http://goo.gl/789456 http://bit.ly/3j4ir4"
+ * ,<br/>
+ * "author":"anAuthor1",<br/>
+ * "image":"C:\\fakepath\\20121104_161954.jpg"<br/>
+ * },<br/>
+ * {<br/>
+ * "hashtags":["hash21","hash22"],<br/>
+ * "urls":["http://a.realurl21.com","http://a.realurl22.com"],<br/>
+ * "tweet":
+ * "This is the content of another tweet. Bla bla ... #hash21 #hash22 http://t.co/654321 http://goo.gl/ye87j"
+ * ,<br/>
+ * "author":"anAuthor2",<br/>
+ * "image":"C:\\fakepath\\20121104_162553.jpg"<br/>
+ * },<br/>
+ * ]
+ * 
+ * @author spv
+ * 
+ */
+
+@JsonIgnoreProperties(value = { "id", "objects", "qunatity", "state", "rate", "lastModified" })
 @Entity
-public class Tweet implements HasQuantity, Serializable {
+public class Tweet extends CustomIdBaseEntity implements HasQuantity {
 
 	private static final long serialVersionUID = -5452953243879914216L;
 
 	private static final int TWEET_QUANTITY_FACTOR = 2;
 
-	@Id
-	@Column(name = "ID")
-	private Long id;
-
-	@Version
-	@Column(name = "LAST_MODIFIED")
-	private Timestamp lastModified;
-
+	@JsonUnwrapped
 	@ManyToOne
 	@JoinColumn(name = "USER_ID")
 	private TwitterUser user;
 
+	@JsonProperty("tweet")
 	@Column(name = "TWEET_TEXT")
 	private String text;
 
@@ -56,6 +80,9 @@ public class Tweet implements HasQuantity, Serializable {
 
 	@Column(name = "RATE")
 	private int rate;
+
+	@Transient
+	private String image;
 
 	public String getText() {
 		return text;
@@ -94,6 +121,14 @@ public class Tweet implements HasQuantity, Serializable {
 		objects.add(object);
 	}
 
+	public void addObjects(Set<TweetObject> objects) {
+		if (this.objects == null) {
+			this.objects = objects;
+		} else {
+			this.objects.addAll(objects);
+		}
+	}
+
 	public Set<TweetObject> getObjects() {
 		return objects;
 	}
@@ -105,7 +140,15 @@ public class Tweet implements HasQuantity, Serializable {
 	public static Tweet fromStatus(Status status, TwitterUser user) {
 		Tweet tweet = new Tweet();
 		tweet.setId(status.getId());
-		tweet.setText(status.getText());
+		StringBuilder tweetTextBuilder = new StringBuilder();
+		String text = status.getText();
+		for (int i = 0; i < text.length(); i++) {
+			char ch = text.charAt(i);
+			if (!Character.isHighSurrogate(ch) && !Character.isLowSurrogate(ch)) {
+				tweetTextBuilder.append(ch);
+			}
+		}
+		tweet.setText(tweetTextBuilder.toString());
 		tweet.setUser(user);
 		return tweet;
 	}
@@ -127,17 +170,20 @@ public class Tweet implements HasQuantity, Serializable {
 	}
 
 	public boolean hasImage() {
-		for (TweetObject object : objects) {
-			if (TweetObjectTypes.IMAGE.equals(object.getType())) {
-				return true;
-			}
-		}
-		return false;
+		return searchForType(TweetObjectTypes.IMAGE);
 	}
 
 	public boolean hasUrl() {
+		return searchForType(TweetObjectTypes.URL);
+	}
+
+	public boolean hasHashtag() {
+		return searchForType(TweetObjectTypes.HASHTAG);
+	}
+
+	private boolean searchForType(TweetObjectTypes type) {
 		for (TweetObject object : objects) {
-			if (TweetObjectTypes.URL.equals(object.getType())) {
+			if (type.equals(object.getType())) {
 				return true;
 			}
 		}
@@ -145,27 +191,36 @@ public class Tweet implements HasQuantity, Serializable {
 	}
 
 	public TweetObject getFirstImageObject() {
-		for (TweetObject object : objects) {
-			if (TweetObjectTypes.IMAGE.equals(object.getType())) {
-				return object;
-			}
-		}
-		return null;
+		return getFirstOfType(TweetObjectTypes.IMAGE);
 	}
 
 	public TweetObject getFirstUrlObject() {
+		return getFirstOfType(TweetObjectTypes.URL);
+	}
+
+	private TweetObject getFirstOfType(TweetObjectTypes type) {
 		for (TweetObject object : objects) {
-			if (TweetObjectTypes.URL.equals(object.getType())) {
+			if (type.equals(object.getType())) {
 				return object;
 			}
 		}
 		return null;
 	}
 
-	public List<String> getHashTags() {
+	@JsonProperty("hashtags")
+	public List<String> getHashtags() {
+		return getValuesByType(TweetObjectTypes.HASHTAG);
+	}
+
+	@JsonProperty("urls")
+	public List<String> getUrls() {
+		return getValuesByType(TweetObjectTypes.URL);
+	}
+
+	private List<String> getValuesByType(TweetObjectTypes type) {
 		List<String> result = new ArrayList<String>();
 		for (TweetObject object : objects) {
-			if (TweetObjectTypes.HASHTAG.equals(object.getType())) {
+			if (type.equals(object.getType())) {
 				result.add(object.getValue());
 			}
 		}
@@ -176,45 +231,13 @@ public class Tweet implements HasQuantity, Serializable {
 		return getQuantity() * TWEET_QUANTITY_FACTOR;
 	}
 
-	public Timestamp getLastModified() {
-		return lastModified;
+	@JsonProperty("image")
+	public String getImage() {
+		return image;
 	}
 
-	public void setLastModified(Timestamp lastModified) {
-		this.lastModified = lastModified;
-	}
-
-	public Long getId() {
-		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
-	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Tweet other = (Tweet) obj;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		return true;
+	public void setImage(String image) {
+		this.image = image;
 	}
 
 }

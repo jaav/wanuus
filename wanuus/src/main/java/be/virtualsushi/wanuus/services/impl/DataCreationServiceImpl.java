@@ -2,7 +2,11 @@ package be.virtualsushi.wanuus.services.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Future;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,6 +24,8 @@ import be.virtualsushi.wanuus.services.TweetProcessService;
 
 @Service("dateCreationService")
 public class DataCreationServiceImpl implements DataCreationService {
+
+	private static final Logger log = LoggerFactory.getLogger(DataCreationServiceImpl.class);
 
 	@Autowired
 	private TweetRepository tweetRepository;
@@ -44,35 +50,46 @@ public class DataCreationServiceImpl implements DataCreationService {
 
 	@Override
 	public void createListData() throws TwitterException {
-		long cursor = -1;
-		List<Long> existingUserIds = twitterUserRepository.getExistingUserIds();
-		getListMembers(cursor, existingUserIds);
-		tweetProcessService.processFollowList(existingUserIds);
-		wanuusStatusListener.listen(existingUserIds);
-	}
-
-	private void getListMembers(long cursor, List<Long> existingUserIds) throws TwitterException {
-		PagableResponseList<User> members = twitter.getUserListMembers(listOwnerName, listSlug, cursor);
-		while (!members.isEmpty()) {
-			readListMembers(members, existingUserIds);
-			cursor = members.getNextCursor();
-			members = twitter.getUserListMembers(listOwnerName, listSlug, cursor);
+		List<TwitterUser> existingUsers = twitterUserRepository.findAll();
+		if (existingUsers == null) {
+			existingUsers = new ArrayList<TwitterUser>();
 		}
-	}
-
-	private void readListMembers(PagableResponseList<User> members, List<Long> existingUserIds) {
-		List<TwitterUser> users = new ArrayList<TwitterUser>();
-		for (User member : members) {
-			if (!existingUserIds.contains(member.getId())) {
-				TwitterUser user = new TwitterUser();
-				user.setId(member.getId());
-				user.setScreenName(member.getScreenName());
-				user.setName(member.getName());
-				users.add(user);
-				existingUserIds.add(user.getId());
+		getListMembers(existingUsers);
+		List<Future<Integer>> importResults = new ArrayList<Future<Integer>>(existingUsers.size());
+		for (TwitterUser user : existingUsers) {
+			importResults.add(tweetProcessService.processFollowing(user));
+		}
+		wanuusStatusListener.listen(existingUsers);
+		int importedTweetsCount = 0;
+		for (Future<Integer> importResult : importResults) {
+			try {
+				importedTweetsCount += importResult.get();
+			} catch (Exception e) {
+				log.error("Error importing tweets for user - " + existingUsers.get(importResults.indexOf(importResult)), e);
 			}
 		}
-		twitterUserRepository.save(users);
+		log.info(importedTweetsCount + " tweets imported.");
+	}
+
+	private void getListMembers(List<TwitterUser> existingUsers) throws TwitterException {
+		long cursor = -1;
+		while (cursor != 0) {
+			PagableResponseList<User> members = twitter.getUserListMembers(listOwnerName, listSlug, cursor);
+			readListMembers(members, existingUsers);
+			cursor = members.getNextCursor();
+		}
+	}
+
+	private void readListMembers(PagableResponseList<User> members, List<TwitterUser> existingUsers) {
+		final List<TwitterUser> users = new ArrayList<TwitterUser>();
+		for (User member : members) {
+			TwitterUser user = TwitterUser.fromUser(member);
+			if (!existingUsers.contains(user)) {
+				users.add(user);
+			}
+		}
+		CollectionUtils.addAll(existingUsers, twitterUserRepository.save(users).iterator());
+		log.info(users.size() + " new members added.");
 	}
 
 }

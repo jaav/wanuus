@@ -10,7 +10,7 @@ import be.virtualsushi.wanuus.model.TwitterUser;
 @Repository
 public interface TwitterUserRepositoy extends WanuusRepository<TwitterUser> {
 
-	@Query("select id from TwitterUser")
-	public List<Long> getExistingUserIds();
+	@Query("from TwitterUser")
+	public List<TwitterUser> findAll();
 
 }

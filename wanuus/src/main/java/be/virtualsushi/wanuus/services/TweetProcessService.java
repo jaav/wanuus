@@ -1,6 +1,7 @@
 package be.virtualsushi.wanuus.services;
 
 import java.util.List;
+import java.util.concurrent.Future;
 
 import twitter4j.Status;
 import twitter4j.TwitterException;
@@ -12,6 +13,8 @@ public interface TweetProcessService {
 
 	void processTweets(TwitterUser user, List<Status> statuses);
 
-	void processFollowList(List<Long> followList) throws TwitterException;
+	Future<Integer> processFollowing(TwitterUser user) throws TwitterException;
+
+	void deleteTweet(Long tweetId);
 
 }

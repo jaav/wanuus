@@ -125,7 +125,7 @@
 				<db.user>root</db.user>
 				<db.password>root</db.password>
 				<db.url>jdbc:mysql://localhost:3306/wanuus</db.url>
-				<log.sql>true</log.sql>
+				<log.sql>false</log.sql>
 				<oauth.consumer.key>LGvb9O00iGdsrrrjsLJ8Qg</oauth.consumer.key>
 				<oauth.consumer.secret>T0v59GPuk6AOTQg34Rx03DDBlsmoTkMpqCzqPhVM</oauth.consumer.secret>
 				<oauth.access.token>316337996-HX0jp3QuoIem40o23mW4AuYfU7oJuFp1gHP0V3mM</oauth.access.token>
@@ -135,6 +135,7 @@
 				<imagemagick.home.path>C:/Program Files/ImageMagick</imagemagick.home.path>
 				<google.search.api.key>AIzaSyBcfbdPBGxMy8LK3E6DmBqFUXoLeeG0fxw</google.search.api.key>
 				<google.search.engine.id>004493898280328902075:gmjrxrwdaes</google.search.engine.id>
+				<gae.post.url>http://localhost:9000/uploadTweet</gae.post.url>
 			</properties>
 		</profile>
 	</profiles>
