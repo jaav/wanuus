@@ -46,7 +46,7 @@ public class WanuusStatusListenerImpl implements StatusListener, WanuusStatusLis
 
 	@Override
 	public void onStatus(Status status) {
-		tweetProcessService.processTweet(twitterUserRepositoy.findOne(status.getUser().getId()), status);
+		tweetProcessService.processStatus(twitterUserRepositoy.findOne(status.getUser().getId()), status, true);
 	}
 
 	@Override

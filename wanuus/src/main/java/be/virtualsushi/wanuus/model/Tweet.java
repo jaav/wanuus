@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -67,8 +68,8 @@ public class Tweet extends CustomIdBaseEntity implements HasQuantity {
 	@Column(name = "TWEET_TEXT")
 	private String text;
 
-	@ManyToMany(fetch = FetchType.EAGER)
-	@JoinTable(name = "TWEET_OBJECT", joinColumns = @JoinColumn(name = "TWEET_ID", referencedColumnName = "ID"), inverseJoinColumns = @JoinColumn(name = "OBJECT_ID", referencedColumnName = "ID"))
+	@ManyToMany(fetch = FetchType.EAGER, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+	@JoinTable(name = "TWEET_TO_OBJECT", joinColumns = @JoinColumn(name = "TWEET_ID", referencedColumnName = "ID"), inverseJoinColumns = @JoinColumn(name = "OBJECT_ID", referencedColumnName = "ID"))
 	private Set<TweetObject> objects;
 
 	@Column(name = "QUANTITY")

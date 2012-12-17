@@ -1,17 +1,17 @@
 package be.virtualsushi.wanuus.services.impl;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
@@ -39,6 +39,23 @@ public class TweetProcessServiceImpl implements TweetProcessService {
 
 	private static final Logger log = LoggerFactory.getLogger(TweetProcessServiceImpl.class);
 
+	private class ProcessTweetCallable implements Callable<Tweet> {
+
+		private final TwitterUser user;
+		private final Status status;
+
+		public ProcessTweetCallable(TwitterUser user, Status status) {
+			this.user = user;
+			this.status = status;
+		}
+
+		@Override
+		public Tweet call() throws Exception {
+			return processStatus(user, status, false);
+		}
+
+	}
+
 	@Autowired
 	private Twitter twitter;
 
@@ -54,38 +71,28 @@ public class TweetProcessServiceImpl implements TweetProcessService {
 	@Autowired
 	private ShortUrlsProcessor shortUrlsProcessor;
 
-	@Autowired
-	private TaskExecutor taskExecutor;
-
-	private Map<Long, Integer> processingTweetsQuantities = Collections.synchronizedMap(new HashMap<Long, Integer>());
-
-	@Async
 	@Override
-	public void processTweet(TwitterUser user, Status status) {
+	public Tweet processStatus(TwitterUser user, Status status, boolean saveAfterProcess) {
 		if (status.isRetweet()) {
 			status = status.getRetweetedStatus();
 		}
-		if (processingTweetsQuantities.containsKey(status.getId())) {
-			Integer quantity = processingTweetsQuantities.get(status.getId());
-			processingTweetsQuantities.put(status.getId(), quantity + 1);
-		} else {
-			processingTweetsQuantities.put(status.getId(), 1);
-			Tweet tweet = tweetRepository.findOne(status.getId());
-			if (tweet == null) {
-				TwitterUser realAuthor = twitterUserRepositoy.findOne(status.getUser().getId());
-				tweet = Tweet.fromStatus(status, realAuthor == null ? user : realAuthor);
-				tweet.addObjects(processTweetObjects(status));
-			} else if (TweetStates.TOP_RATED.equals(tweet.getState())) {
-				return;
-			}
-			tweet.setState(TweetStates.NOT_RATED);
-			tweet.increaseQuantity(processingTweetsQuantities.get(status.getId()));
-			tweetRepository.save(tweet);
-			processingTweetsQuantities.remove(status.getId());
+		Tweet tweet = tweetRepository.findOne(status.getId());
+		if (tweet == null) {
+			TwitterUser realAuthor = twitterUserRepositoy.findOne(status.getUser().getId());
+			tweet = Tweet.fromStatus(status, realAuthor == null ? user : realAuthor);
+			tweet.addObjects(processTweetObjects(status, saveAfterProcess));
+		} else if (TweetStates.TOP_RATED.equals(tweet.getState())) {
+			return tweet;
 		}
+		tweet.setState(TweetStates.NOT_RATED);
+		tweet.increaseQuantity(1);
+		if (saveAfterProcess) {
+			return tweetRepository.save(tweet);
+		}
+		return tweet;
 	}
 
-	private Set<TweetObject> processTweetObjects(Status status) {
+	private Set<TweetObject> processTweetObjects(Status status, boolean saveAfterProcess) {
 		HashSet<TweetObject> result = new HashSet<TweetObject>();
 		for (HashtagEntity hashtag : status.getHashtagEntities()) {
 			result.add(processTweetObject(hashtag.getText(), TweetObjectTypes.HASHTAG));
@@ -110,24 +117,27 @@ public class TweetProcessServiceImpl implements TweetProcessService {
 			object.setType(type);
 		}
 		object.increaseQuantity(1);
-		return tweetObjectRepository.save(object);
+		return object;
 	}
 
 	@Async
 	@Override
-	public void processTweets(TwitterUser user, List<Status> statuses) {
-		for (Status status : statuses) {
-			processTweet(user, status);
-		}
-		log.info(statuses.size() + " tweets processed for user - " + user.getId());
-	}
-
-	@Async
-	@Override
-	public Future<Integer> processFollowing(TwitterUser user) throws TwitterException {
+	public Future<List<Tweet>> importUserTimeline(TwitterUser user) throws TwitterException {
 		ResponseList<Status> timeline = twitter.getUserTimeline(user.getId());
-		processTweets(user, timeline);
-		return new AsyncResult<Integer>(timeline.size());
+		ExecutorService executor = Executors.newFixedThreadPool(timeline.size());
+		List<Future<Tweet>> futureTweets = new ArrayList<Future<Tweet>>();
+		for (Status status : timeline) {
+			futureTweets.add(executor.submit(new ProcessTweetCallable(user, status)));
+		}
+		List<Tweet> tweets = new ArrayList<Tweet>();
+		for (Future<Tweet> futureTweet : futureTweets) {
+			try {
+				tweets.add(futureTweet.get());
+			} catch (Exception e) {
+				log.error("Error processing imported tweet.", e);
+			}
+		}
+		return new AsyncResult<List<Tweet>>(tweets);
 	}
 
 	@Override

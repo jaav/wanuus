@@ -5,15 +5,14 @@ import java.util.concurrent.Future;
 
 import twitter4j.Status;
 import twitter4j.TwitterException;
+import be.virtualsushi.wanuus.model.Tweet;
 import be.virtualsushi.wanuus.model.TwitterUser;
 
 public interface TweetProcessService {
 
-	void processTweet(TwitterUser user, Status status);
+	Tweet processStatus(TwitterUser user, Status status, boolean saveAfterProcess);
 
-	void processTweets(TwitterUser user, List<Status> statuses);
-
-	Future<Integer> processFollowing(TwitterUser user) throws TwitterException;
+	Future<List<Tweet>> importUserTimeline(TwitterUser user) throws TwitterException;
 
 	void deleteTweet(Long tweetId);
 

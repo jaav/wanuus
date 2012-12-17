@@ -1,7 +1,9 @@
 package be.virtualsushi.wanuus.services.impl;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Future;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -16,7 +18,10 @@ import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.User;
 import be.virtualsushi.wanuus.components.WanuusStatusListener;
+import be.virtualsushi.wanuus.model.Tweet;
+import be.virtualsushi.wanuus.model.TweetObject;
 import be.virtualsushi.wanuus.model.TwitterUser;
+import be.virtualsushi.wanuus.repositories.TweetObjectRepository;
 import be.virtualsushi.wanuus.repositories.TweetRepository;
 import be.virtualsushi.wanuus.repositories.TwitterUserRepositoy;
 import be.virtualsushi.wanuus.services.DataCreationService;
@@ -32,6 +37,9 @@ public class DataCreationServiceImpl implements DataCreationService {
 
 	@Autowired
 	private TwitterUserRepositoy twitterUserRepository;
+
+	@Autowired
+	private TweetObjectRepository tweetObjectRepository;
 
 	@Autowired
 	private Twitter twitter;
@@ -55,20 +63,51 @@ public class DataCreationServiceImpl implements DataCreationService {
 			existingUsers = new ArrayList<TwitterUser>();
 		}
 		getListMembers(existingUsers);
-		List<Future<Integer>> importResults = new ArrayList<Future<Integer>>(existingUsers.size());
-		for (TwitterUser user : existingUsers) {
-			importResults.add(tweetProcessService.processFollowing(user));
-		}
 		wanuusStatusListener.listen(existingUsers);
+		List<Tweet> importedTweets = importExistingTweets(existingUsers);
+		processImportedTweets(importedTweets);
+		log.info("List import finished.");
+	}
+
+	private void processImportedTweets(List<Tweet> importedTweets) {
+		for (Tweet tweet : importedTweets) {
+			if (tweetRepository.exists(tweet.getId())) {
+				tweetRepository.updateTweetQuantity(tweet.getId());
+			} else {
+				Set<TweetObject> resultObjects = new HashSet<TweetObject>();
+				for (TweetObject object : tweet.getObjects()) {
+					TweetObject existingObject = tweetObjectRepository.findByValueAndType(object.getValue(), object.getType());
+					if (existingObject != null) {
+						existingObject.increaseQuantity(1);
+						resultObjects.add(existingObject);
+					} else {
+						resultObjects.add(object);
+					}
+				}
+				tweet.setObjects(resultObjects);
+				tweetRepository.save(tweet);
+			}
+		}
+	}
+
+	private List<Tweet> importExistingTweets(List<TwitterUser> existingUsers) throws TwitterException {
+		List<Future<List<Tweet>>> importResults = new ArrayList<Future<List<Tweet>>>(existingUsers.size());
+		for (TwitterUser user : existingUsers) {
+			importResults.add(tweetProcessService.importUserTimeline(user));
+		}
 		int importedTweetsCount = 0;
-		for (Future<Integer> importResult : importResults) {
+		List<Tweet> importedTweets = new ArrayList<Tweet>();
+		for (Future<List<Tweet>> importResult : importResults) {
 			try {
-				importedTweetsCount += importResult.get();
+				List<Tweet> tweetsList = importResult.get();
+				importedTweetsCount += tweetsList.size();
+				importedTweets.addAll(tweetsList);
 			} catch (Exception e) {
 				log.error("Error importing tweets for user - " + existingUsers.get(importResults.indexOf(importResult)), e);
 			}
 		}
 		log.info(importedTweetsCount + " tweets imported.");
+		return importedTweets;
 	}
 
 	private void getListMembers(List<TwitterUser> existingUsers) throws TwitterException {

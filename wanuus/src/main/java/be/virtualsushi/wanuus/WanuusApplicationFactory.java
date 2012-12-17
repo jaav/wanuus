@@ -75,8 +75,8 @@ public class WanuusApplicationFactory {
 		schemeRegistry.register(new Scheme("https", 443, SSLSocketFactory.getSocketFactory()));
 
 		PoolingClientConnectionManager connectionManager = new PoolingClientConnectionManager(schemeRegistry, 30, TimeUnit.SECONDS);
-		connectionManager.setMaxTotal(400);
-		connectionManager.setDefaultMaxPerRoute(100);
+		connectionManager.setMaxTotal(1000);
+		connectionManager.setDefaultMaxPerRoute(250);
 		return connectionManager;
 	}
 
