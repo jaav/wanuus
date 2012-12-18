@@ -9,6 +9,8 @@ import org.springframework.scheduling.TaskScheduler;
 import be.virtualsushi.wanuus.services.DataAnalysisService;
 import be.virtualsushi.wanuus.services.DataCreationService;
 
+import java.util.Date;
+
 public class WanuusApplication {
 
 	private static final Logger log = LoggerFactory.getLogger(WanuusApplication.class);
@@ -28,7 +30,7 @@ public class WanuusApplication {
 				public void run() {
 					dataAnalysisService.analyseTweets();
 				}
-			}, 15 * 60 * 1000);
+			}, new Date(new Date().getTime()+5 * 60 * 1000), 15 * 60 * 1000);
 		} catch (Exception e) {
 			log.error("Wanuus application error:", e);
 		}

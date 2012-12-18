@@ -64,8 +64,8 @@ public class DataCreationServiceImpl implements DataCreationService {
 		}
 		getListMembers(existingUsers);
 		wanuusStatusListener.listen(existingUsers);
-		List<Tweet> importedTweets = importExistingTweets(existingUsers);
-		processImportedTweets(importedTweets);
+		/*List<Tweet> importedTweets = importExistingTweets(existingUsers);
+		processImportedTweets(importedTweets);*/
 		log.info("List import finished.");
 	}
 
